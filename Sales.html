@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>شاشة المبيعات - POS</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f1f5f9;
+            color: #1e293b;
+            padding: 20px;
+        }
+
+        /* الهيكل العام */
+        .pos-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+            height: calc(100vh - 40px);
+        }
+
+        /* قسم المنتجات (اليمين) */
+        .products-section {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .search-bar {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            outline: none;
+            transition: 0.2s;
+        }
+
+        .search-bar:focus {
+            border-color: #3b82f6;
+        }
+
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 15px;
+            overflow-y: auto;
+            padding-left: 5px;
+        }
+
+        .product-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .product-card:hover {
+            border-color: #3b82f6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+        }
+
+        .product-card h4 {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .product-card .price {
+            color: #2563eb;
+            font-weight: bold;
+        }
+
+        /* قسم السلة (اليسار) */
+        .cart-section {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .cart-header {
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .cart-items {
+            list-style: none;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .qty-btn {
+            background: #e2e8f0;
+            border: none;
+            width: 26px;
+            height: 26px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .qty-btn:hover {
+            background: #cbd5e1;
+        }
+
+        /* منطقة الحساب والإنهاء */
+        .cart-footer {
+            border-top: 2px solid #f1f5f9;
+            padding-top: 15px;
+            margin-top: 15px;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .checkout-btn {
+            width: 100%;
+            background-color: #10b981;
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .checkout-btn:hover {
+            background-color: #059669;
+        }
+
+        /* التجاوب مع الشاشات الصغيرة */
+        @media (max-width: 768px) {
+            .pos-container {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="pos-container">
+        <!-- 1. قسم المنتجات -->
+        <div class="products-section">
+            <input type="text" id="search-input" class="search-bar" placeholder="بحث عن منتج..." onkeyup="filterProducts()">
+            <div class="products-grid" id="products-grid">
+                <!-- يتم إضافة المنتجات عبر JavaScript -->
+            </div>
+        </div>
+
+        <!-- 2. قسم سلة المشتريات -->
+        <div class="cart-section">
+            <div>
+                <div class="cart-header">
+                    <h2>سلة المشتريات 🛒</h2>
+                </div>
+                <ul class="cart-items" id="cart-items">
+                    <!-- عناصر السلة تُضاف هنا -->
+                </ul>
+            </div>
+
+            <div class="cart-footer">
+                <div class="total-row">
+                    <span>الإجمالي:</span>
+                    <span id="total-price">$0.00</span>
+                </div>
+                <button class="checkout-btn" onclick="checkout()">إتمام عملية البيع والطبع 🖨️</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- برمجة الصفحة والتفاعل -->
+    <script>
+        // قائمة المنتجات الإفتراضية
+        const products = [
+            { id: 1, name: "قهوة كابتشينو", price: 15 },
+            { id: 2, name: "شاي أخضر", price: 8 },
+            { id: 3, name: "كرواسون شوكولاتة", price: 12 },
+            { id: 4, name: "عصير برتقال طازج", price: 18 },
+            { id: 5, name: "شطيرة جبن", price: 22 },
+            { id: 6, name: "ماء معبأ", price: 3 }
+        ];
+
+        let cart = [];
+
+        // عرض المنتجات في الشبكة
+        function renderProducts(productList = products) {
+            const grid = document.getElementById('products-grid');
+            grid.innerHTML = '';
+            
+            productList.forEach(product => {
+                const card = document.createElement('div');
+                card.className = 'product-card';
+                card.onclick = () => addToCart(product.id);
+                card.innerHTML = `
+                    <h4>${product.name}</h4>
+                    <div class="price">$${product.price.toFixed(2)}</div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // إضافة منتج للسلة
+        function addToCart(productId) {
+            const product = products.find(p => p.id === productId);
+            const cartItem = cart.find(item => item.id === productId);
+
+            if (cartItem) {
+                cartItem.quantity += 1;
+            } else {
+                cart.push({ ...product, quantity: 1 });
+            }
+            updateCartUI();
+        }
+
+        // تغيير الكميات (+ أو -)
+        function changeQuantity(productId, amount) {
+            const cartItem = cart.find(item => item.id === productId);
+            if (cartItem) {
+                cartItem.quantity += amount;
+                if (cartItem.quantity <= 0) {
+                    cart = cart.filter(item => item.id !== productId);
+                }
+            }
+            updateCartUI();
+        }
+
+        // تحديث واجهة السلة والتوتال
+        function updateCartUI() {
+            const cartList = document.getElementById('cart-items');
+            const totalElement = document.getElementById('total-price');
+            
+            cartList.innerHTML = '';
+            let total = 0;
+
+            cart.forEach(item => {
+                const itemTotal = item.price * item.quantity;
+                total += itemTotal;
+
+                const li = document.createElement('li');
+                li.className = 'cart-item';
+                li.innerHTML = `
+                    <div>
+                        <strong>${item.name}</strong>
+                        <div style="color: #64748b; font-size: 13px;">$${item.price} × ${item.quantity}</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <button class="qty-btn" onclick="changeQuantity(${item.id}, 1)">+</button>
+                        <span>${item.quantity}</span>
+                        <button class="qty-btn" onclick="changeQuantity(${item.id}, -1)">-</button>
+                        <strong style="margin-right: 10px; min-width: 50px; text-align: left;">$${itemTotal.toFixed(2)}</strong>
+                    </div>
+                `;
+                cartList.appendChild(li);
+            });
+
+            totalElement.innerText = `$${total.toFixed(2)}`;
+        }
+
+        // تصفية المنتجات في البحث
+        function filterProducts() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            const filtered = products.filter(p => p.name.toLowerCase().includes(query));
+            renderProducts(filtered);
+        }
+
+        // إتمام العملية
+        function checkout() {
+            if (cart.length === 0) {
+                alert("السلة فارغة! يرجى اختيار منتجات أولاً.");
+                return;
+            }
+            
+            alert("تم إتمام عملية البيع بنجاح!");
+            window.print(); // فتح نافذة الطباعة للفاتورة
+            cart = [];
+            updateCartUI();
+        }
+
+        // التشغيل عند فتح الصفحة
+        renderProducts();
+    </script>
+</body>
+</html>
